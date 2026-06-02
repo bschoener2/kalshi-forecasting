@@ -72,3 +72,23 @@ noted above, this restriction may be relaxed in the future).
 Backend language: Python
 DB: local postgres
 Frontend: whatever you recommend
+
+**Agents
+
+We will have two Claude Code agents:
+ - Laptop: This claude code agent runs natively on my laptop. It is responsible
+   for docker build and run scripts, managing the git log, and managing the
+   running Dev docker image and docker postgres db.
+ - Dev: This claude code agent runs in a docker container with
+   --dangerously-skip-permissions. It will be used to build the project with
+   high independence without putting the laptop at risk from security issues.
+
+Each instance of Claude Code must know whether it is Dev or Laptop before
+doing any work. Check the environment variable CLAUDE_AGENT_ROLE:
+ - If CLAUDE_AGENT_ROLE=dev, you are the Dev agent.
+ - If CLAUDE_AGENT_ROLE is unset or any other value, ask the user to confirm
+   your role before proceeding.
+
+These Claude Code instances will work in the same repo but will have different
+.claude folders. The workspace will be mounted into the Dev docker image so
+that the Dev claude can make edits.

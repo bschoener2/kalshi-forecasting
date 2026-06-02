@@ -53,4 +53,6 @@ docker run -it --rm \
   -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-localdev}" \
   -e BUDGET_DOLLARS="${BUDGET_DOLLARS:-100.0}" \
   -e MIN_HISTORY_DAYS="${MIN_HISTORY_DAYS:-365}" \
+  -e CLAUDE_AGENT_ROLE=dev \
+  -e CLAUDE_CONFIG_DIR=/home/claudeuser/.claude \
   kalshi-forecasting-claude
