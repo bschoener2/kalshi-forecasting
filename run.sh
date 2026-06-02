@@ -55,4 +55,5 @@ docker run -it --rm \
   -e MIN_HISTORY_DAYS="${MIN_HISTORY_DAYS:-365}" \
   -e CLAUDE_AGENT_ROLE=dev \
   -e CLAUDE_CONFIG_DIR=/home/claudeuser/.claude \
+  -v "$SCRIPT_DIR/.claude-dev:/home/claudeuser/.claude" \
   kalshi-forecasting-claude

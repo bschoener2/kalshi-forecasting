@@ -1,6 +1,7 @@
 .venv/
 .env
 .claude/
+.claude-dev/
 *.pyc
 __pycache__/
 *.egg-info/
