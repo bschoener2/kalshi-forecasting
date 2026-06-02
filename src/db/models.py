@@ -23,6 +23,7 @@ class Market(Base):
     close_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     series_ticker: Mapped[Optional[str]] = mapped_column(String)
+    event_ticker: Mapped[Optional[str]] = mapped_column(String)
 
     prices: Mapped[list['MarketPrice']] = relationship(back_populates='market')
 
@@ -34,9 +35,9 @@ class MarketPrice(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     ticker: Mapped[str] = mapped_column(String, ForeignKey('markets.ticker'), nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    yes_bid: Mapped[Optional[int]] = mapped_column(Integer)
-    yes_ask: Mapped[Optional[int]] = mapped_column(Integer)
-    volume: Mapped[Optional[int]] = mapped_column(Integer)
+    yes_bid: Mapped[Optional[int]] = mapped_column(Integer)   # cents 0-99
+    yes_ask: Mapped[Optional[int]] = mapped_column(Integer)   # cents 0-99
+    volume: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2))
 
     market: Mapped['Market'] = relationship(back_populates='prices')
 
@@ -78,3 +79,21 @@ class DailyDecision(Base):
     recommended_action: Mapped[Optional[str]] = mapped_column(String)  # buy/sell/hold
     confidence: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 4))
     status: Mapped[str] = mapped_column(String, nullable=False, server_default='pending')
+
+
+class MarketStats(Base):
+    __tablename__ = 'market_stats'
+
+    ticker: Mapped[str] = mapped_column(String, ForeignKey('markets.ticker'), primary_key=True)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text('now()')
+    )
+    series_ticker: Mapped[Optional[str]] = mapped_column(String)
+    num_candles: Mapped[Optional[int]] = mapped_column(Integer)
+    data_start_date: Mapped[Optional[date]] = mapped_column(Date)
+    data_end_date: Mapped[Optional[date]] = mapped_column(Date)
+    avg_volume: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2))
+    price_volatility: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 8))
+    avg_spread_cents: Mapped[Optional[Decimal]] = mapped_column(Numeric(6, 2))
+    pct_candles_with_data: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 4))
+    rank_score: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 8))

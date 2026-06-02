@@ -11,18 +11,27 @@ class Market:
     status: str
     open_time: Optional[datetime]
     close_time: Optional[datetime]
-    yes_bid: Optional[int]
-    yes_ask: Optional[int]
-    volume: Optional[int]
+    yes_bid: Optional[int]    # cents (0-99)
+    yes_ask: Optional[int]    # cents (0-99)
+    volume: Optional[float]
     series_ticker: Optional[str]
+    event_ticker: Optional[str]
 
 
 @dataclass
 class PricePoint:
     ts: datetime
-    yes_bid: Optional[int]
-    yes_ask: Optional[int]
-    volume: Optional[int]
+    yes_bid: Optional[int]    # cents
+    yes_ask: Optional[int]    # cents
+    volume: Optional[float]
+
+
+@dataclass
+class SeriesInfo:
+    ticker: str
+    title: str
+    category: str
+    frequency: str
 
 
 @dataclass

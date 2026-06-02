@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import httpx
 
 from .auth import load_private_key, build_auth_headers
-from .types import Market, PricePoint, Position, Balance
+from .types import Market, PricePoint, SeriesInfo, Position, Balance
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +57,35 @@ class KalshiClient:
                     raise
         raise RuntimeError(f'Max retries exceeded for {method} {path}')
 
+    # ── Series ────────────────────────────────────────────────────────────
+
+    def get_all_series(self) -> list[SeriesInfo]:
+        series = []
+        cursor = None
+        while True:
+            params: dict = {'limit': 200}
+            if cursor:
+                params['cursor'] = cursor
+            data = self._request('GET', '/series', params=params)
+            for s in data.get('series', []):
+                series.append(SeriesInfo(
+                    ticker=s['ticker'],
+                    title=s.get('title', ''),
+                    category=s.get('category', ''),
+                    frequency=s.get('frequency', ''),
+                ))
+            cursor = data.get('cursor')
+            if not cursor:
+                break
+            time.sleep(0.12)
+        return series
+
+    # ── Markets ───────────────────────────────────────────────────────────
+
     def get_markets(
         self,
         status: Optional[str] = None,
+        series_ticker: Optional[str] = None,
         limit: int = 200,
         max_pages: Optional[int] = None,
     ) -> list[Market]:
@@ -70,43 +96,62 @@ class KalshiClient:
             params: dict = {'limit': limit}
             if status:
                 params['status'] = status
+            if series_ticker:
+                params['series_ticker'] = series_ticker
             if cursor:
                 params['cursor'] = cursor
             data = self._request('GET', '/markets', params=params)
             for m in data.get('markets', []):
-                markets.append(self._parse_market(m))
+                parsed = self._parse_market(m)
+                # Ensure series_ticker is populated when we know it from the query
+                if series_ticker and not parsed.series_ticker:
+                    parsed.series_ticker = series_ticker
+                markets.append(parsed)
             page += 1
             cursor = data.get('cursor')
             if not cursor:
                 break
             if max_pages and page >= max_pages:
                 break
-            time.sleep(0.25)  # avoid rate limiting between pages
+            time.sleep(0.25)
         return markets
 
     def get_market(self, ticker: str) -> Market:
         data = self._request('GET', f'/markets/{ticker}')
         return self._parse_market(data['market'])
 
-    def get_market_history(
+    # ── Candlesticks ─────────────────────────────────────────────────────
+
+    def get_market_candlesticks(
         self,
-        ticker: str,
+        series_ticker: str,
+        market_ticker: str,
         start_ts: Optional[int] = None,
         end_ts: Optional[int] = None,
         period_interval: int = 1440,
     ) -> list[PricePoint]:
-        params: dict = {'period_interval': period_interval}
-        if start_ts is not None:
-            params['min_ts'] = start_ts
-        if end_ts is not None:
-            params['max_ts'] = end_ts
+        """Fetch OHLC candlestick data.
+
+        Endpoint: GET /series/{series_ticker}/markets/{market_ticker}/candlesticks
+        period_interval is in minutes (1440 = daily).
+        The API requires start_ts/end_ts; defaults to a 2-year lookback if not provided.
+        """
+        now = int(time.time())
+        params: dict = {
+            'period_interval': period_interval,
+            'start_ts': start_ts if start_ts is not None else now - 86400 * 730,
+            'end_ts': end_ts if end_ts is not None else now,
+        }
+        path = f'/series/{series_ticker}/markets/{market_ticker}/candlesticks'
         try:
-            data = self._request('GET', f'/markets/{ticker}/history', params=params)
+            data = self._request('GET', path, params=params)
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
+            if e.response.status_code in (404, 400):
                 return []
             raise
-        return [self._parse_price_point(p) for p in data.get('history', [])]
+        return [self._parse_candlestick(c) for c in data.get('candlesticks', [])]
+
+    # ── Portfolio ─────────────────────────────────────────────────────────
 
     def get_positions(self) -> list[Position]:
         data = self._request('GET', '/portfolio/positions')
@@ -129,6 +174,8 @@ class KalshiClient:
             total_value_cents=data.get('total_value', 0),
         )
 
+    # ── Parsers ───────────────────────────────────────────────────────────
+
     @staticmethod
     def _parse_market(m: dict) -> Market:
         def parse_dt(s):
@@ -137,6 +184,11 @@ class KalshiClient:
             if isinstance(s, (int, float)):
                 return datetime.fromtimestamp(s, tz=timezone.utc)
             return datetime.fromisoformat(s.replace('Z', '+00:00'))
+
+        def dollars_to_cents(v) -> Optional[int]:
+            if v is None:
+                return None
+            return int(float(v) * 100)
 
         return Market(
             ticker=m['ticker'],
@@ -147,24 +199,28 @@ class KalshiClient:
             close_time=parse_dt(
                 m.get('close_time') or m.get('expiration_time') or m.get('close_datetime')
             ),
-            yes_bid=m.get('yes_bid'),
-            yes_ask=m.get('yes_ask'),
-            volume=m.get('volume'),
-            series_ticker=m.get('series_ticker'),
+            yes_bid=dollars_to_cents(m.get('yes_bid_dollars')),
+            yes_ask=dollars_to_cents(m.get('yes_ask_dollars')),
+            volume=float(m['volume_fp']) if m.get('volume_fp') is not None else None,
+            series_ticker=m.get('series_ticker') or None,
+            event_ticker=m.get('event_ticker') or None,
         )
 
     @staticmethod
-    def _parse_price_point(p: dict) -> PricePoint:
-        ts_val = p.get('ts') or p.get('end_period_ts')
-        if isinstance(ts_val, (int, float)):
-            ts = datetime.fromtimestamp(ts_val, tz=timezone.utc)
-        else:
-            ts = datetime.fromisoformat(str(ts_val).replace('Z', '+00:00'))
+    def _parse_candlestick(c: dict) -> PricePoint:
+        ts = datetime.fromtimestamp(c['end_period_ts'], tz=timezone.utc)
+
+        def cents(nested: dict, key: str = 'close_dollars') -> Optional[int]:
+            if not nested:
+                return None
+            v = nested.get(key)
+            return int(float(v) * 100) if v else None
+
         return PricePoint(
             ts=ts,
-            yes_bid=p.get('yes_bid'),
-            yes_ask=p.get('yes_ask'),
-            volume=p.get('volume'),
+            yes_bid=cents(c.get('yes_bid')),
+            yes_ask=cents(c.get('yes_ask')),
+            volume=float(c['volume_fp']) if c.get('volume_fp') is not None else None,
         )
 
     def close(self):
