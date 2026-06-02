@@ -86,9 +86,14 @@ We will have two Claude Code agents:
 Each instance of Claude Code must know whether it is Dev or Laptop before
 doing any work. Check the environment variable CLAUDE_AGENT_ROLE:
  - If CLAUDE_AGENT_ROLE=dev, you are the Dev agent.
+ - If CLAUDE_AGENT_ROLE=laptop, you are the Laptop agent.
  - If CLAUDE_AGENT_ROLE is unset or any other value, ask the user to confirm
    your role before proceeding.
 
 These Claude Code instances will work in the same repo but will have different
 .claude folders. The workspace will be mounted into the Dev docker image so
 that the Dev claude can make edits.
+
+Whenever the Dev agent needs to install packages or otherwise modify the
+container system, it should update the Dockerfile so that the appropriate
+changes are build into the image automatically going forward.

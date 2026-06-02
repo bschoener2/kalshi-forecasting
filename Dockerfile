@@ -10,6 +10,13 @@ RUN apt-get update && apt-get install -y \
     zsh \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Python venv with project dependencies (baked into image)
+RUN python3 -m venv /opt/venv
+COPY requirements.txt /tmp/requirements.txt
+RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONPATH=/workspace/src
+
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code --unsafe-perm
 
