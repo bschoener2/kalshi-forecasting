@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: kalshi_forecasting
+      POSTGRES_USER: kalshi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+
+volumes:
+  postgres_data:
+
+networks:
+  # Bridge network: claude and db can reach each other and the internet,
+  # but cannot reach other services on the host's localhost.
+  internal:
+    driver: bridge
