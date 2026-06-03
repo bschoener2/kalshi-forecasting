@@ -93,12 +93,17 @@ def compute_stats(candles) -> dict:
 
 
 def rank_score(stats: dict) -> float:
-    """Composite rank: depth × log(volume+1) / (spread+1)."""
-    num = stats.get('num_candles', 0)
+    """Composite rank: volatility × log(volume+1) / (spread+1).
+
+    History depth (num_candles >= MIN_CANDLES) is a hard filter applied before
+    this function is called, so it no longer needs to be a multiplier here.
+    Prioritises markets with large daily price swings, high liquidity, and
+    tight spreads — the conditions needed for profitable intraday trading.
+    """
     vol = float(stats.get('avg_volume') or 0)
     spread = float(stats.get('avg_spread_cents') or 99)
-    pct = float(stats.get('pct_candles_with_data') or 0)
-    return (num / 365.0) * math.log1p(vol) * pct / (spread + 1)
+    volatility = float(stats.get('price_volatility') or 0)
+    return volatility * math.log1p(vol) / (spread + 1)
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────────

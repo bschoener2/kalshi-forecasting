@@ -32,14 +32,14 @@ class KalshiClient:
         self._base_path = urlparse(self.base_url).path.rstrip('/')
         self._client = httpx.Client(timeout=30.0)
 
-    def _request(self, method: str, path: str, params: dict = None) -> dict:
+    def _request(self, method: str, path: str, params: dict = None, body: dict = None) -> dict:
         url = self.base_url + path
         full_path = self._base_path + path
         for attempt in range(MAX_RETRIES):
             # Regenerate headers each attempt so the timestamp is always fresh
             headers = build_auth_headers(self.api_key_id, self.private_key, method, full_path)
             try:
-                resp = self._client.request(method, url, headers=headers, params=params)
+                resp = self._client.request(method, url, headers=headers, params=params, json=body)
                 if resp.status_code == 429:
                     wait = BACKOFF_BASE ** (attempt + 1)
                     logger.warning('Rate limited; sleeping %.1fs', wait)
@@ -173,6 +173,31 @@ class KalshiClient:
             portfolio_value_cents=data.get('portfolio_value', 0),
             total_value_cents=data.get('total_value', 0),
         )
+
+    def place_order(
+        self,
+        ticker: str,
+        side: str,          # 'yes' or 'no'
+        action: str,        # 'buy' or 'sell'
+        count: int,         # number of contracts
+        price_cents: int,   # limit price 1-99
+        client_order_id: Optional[str] = None,
+    ) -> dict:
+        """Place a limit order. Returns the raw API response dict."""
+        import uuid
+        body = {
+            'ticker': ticker,
+            'client_order_id': client_order_id or str(uuid.uuid4()),
+            'side': side,
+            'action': action,
+            'count': count,
+            'type': 'limit',
+            'yes_price' if side == 'yes' else 'no_price': price_cents,
+        }
+        return self._request('POST', '/portfolio/orders', body=body)
+
+    def cancel_order(self, order_id: str) -> dict:
+        return self._request('DELETE', f'/portfolio/orders/{order_id}')
 
     # ── Parsers ───────────────────────────────────────────────────────────
 

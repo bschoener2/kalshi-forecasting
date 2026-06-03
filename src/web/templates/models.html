@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Model Leaderboard — Kalshi Trader{% endblock %}
+{% block content %}
+<h1>Model Leaderboard</h1>
+<p class="muted" style="margin-bottom:16px;">Ranked by Sharpe ratio. *** = significant at FDR 5%.</p>
+<div class="card">
+{% if results %}
+<table>
+  <thead>
+    <tr>
+      <th></th><th>Model</th><th>Ticker</th><th>N</th>
+      <th>MAE</th><th>Dir Acc</th><th>EV</th><th>Sharpe</th><th>p-value</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in results %}
+  <tr>
+    <td>{{ '★' if r.is_significant else '' }}</td>
+    <td><b>{{ r.model_name }}</b></td>
+    <td class="muted" style="font-size:12px;">{{ r.ticker }}</td>
+    <td class="muted">{{ r.n_predictions }}</td>
+    <td>{{ '%.2f¢' | format(r.mae | float) if r.mae else '—' }}</td>
+    <td>{{ '%.1f%%' | format((r.dir_accuracy | float) * 100) if r.dir_accuracy else '—' }}</td>
+    <td class="{{ 'up' if r.ev_cents and (r.ev_cents | float) > 0 else ('down' if r.ev_cents and (r.ev_cents | float) < 0 else '') }}">
+      {{ '%+.3f¢' | format(r.ev_cents | float) if r.ev_cents else '—' }}
+    </td>
+    <td class="{{ 'up' if r.sharpe and (r.sharpe | float) > 0 else ('down' if r.sharpe and (r.sharpe | float) < 0 else '') }}">
+      {{ '%+.2f' | format(r.sharpe | float) if r.sharpe else '—' }}
+    </td>
+    <td class="muted">{{ '%.3f' | format(r.ev_pvalue | float) if r.ev_pvalue else '—' }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No model results yet. Run scripts/train_models.py first.</p>
+{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Kalshi Dashboard{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a;
+      --text: #e2e8f0; --muted: #64748b;
+      --green: #22c55e; --red: #ef4444; --blue: #3b82f6; --yellow: #eab308;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 48px; }
+    nav .brand { font-weight: 700; font-size: 16px; color: var(--text); }
+    nav a { color: var(--muted); font-size: 13px; }
+    nav a.active, nav a:hover { color: var(--text); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+    h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+    .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .stat .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-pending  { background: rgba(234,179,8,.15);  color: var(--yellow); }
+    .badge-success  { background: rgba(34,197,94,.15);  color: var(--green); }
+    .badge-error    { background: rgba(239,68,68,.15);  color: var(--red); }
+    .badge-neutral  { background: rgba(100,116,139,.15); color: var(--muted); }
+
+    .btn { display: inline-block; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; }
+    .btn-approve { background: var(--green); color: #000; }
+    .btn-reject  { background: var(--red);   color: #fff; }
+    .btn:disabled { opacity: .4; cursor: default; }
+
+    .up   { color: var(--green); }
+    .down { color: var(--red); }
+    .muted { color: var(--muted); }
+
+    .decision-card { border-left: 3px solid var(--yellow); padding: 16px 20px; margin-bottom: 12px; }
+    .decision-card .meta { display: flex; gap: 24px; margin-bottom: 10px; flex-wrap: wrap; }
+    .decision-card .meta span { font-size: 12px; color: var(--muted); }
+    .decision-card .meta span b { color: var(--text); }
+    .decision-card .actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+  </style>
+</head>
+<body>
+<nav>
+  <span class="brand">⚡ Kalshi Trader</span>
+  <a href="/" class="{{ 'active' if request.url.path == '/' }}">Dashboard</a>
+  <a href="/decisions" class="{{ 'active' if request.url.path == '/decisions' }}">Decisions</a>
+  <a href="/history" class="{{ 'active' if request.url.path == '/history' }}">History</a>
+  <a href="/models" class="{{ 'active' if request.url.path == '/models' }}">Models</a>
+  <a href="/settings" class="{{ 'active' if request.url.path == '/settings' }}">Settings</a>
+</nav>
+<div class="container">
+{% block content %}{% endblock %}
+</div>
+</body>
+</html>

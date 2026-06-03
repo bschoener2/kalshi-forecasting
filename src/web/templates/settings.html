@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Settings — Kalshi Trader{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<p class="muted" style="margin-bottom:16px;">
+  Configuration is set via environment variables. Restart the server after changes.
+</p>
+<div class="card">
+  <table>
+    <thead><tr><th>Variable</th><th>Value</th><th>Description</th></tr></thead>
+    <tbody>
+    <tr><td><code>BUDGET_DOLLARS</code></td><td>{{ cfg.BUDGET_DOLLARS }}</td><td>Total trading budget</td></tr>
+    <tr><td><code>MIN_CANDLES</code></td><td>{{ cfg.MIN_CANDLES }}</td><td>Minimum history for market selection</td></tr>
+    <tr><td><code>TC_CENTS</code></td><td>{{ cfg.TC_CENTS }}</td><td>Round-trip transaction cost estimate (¢)</td></tr>
+    <tr><td><code>ORDERS_CSV</code></td><td>{{ cfg.ORDERS_CSV }}</td><td>CSV log file path</td></tr>
+    <tr><td><code>TICKER</code></td><td>{{ cfg.TICKER }}</td><td>Active trading market</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Quick Actions</h2>
+  <p class="muted" style="margin-bottom:12px; font-size:13px;">Run these commands inside the container:</p>
+  <pre style="background:#0f1117;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;">
+# Run the noon decision immediately (for testing)
+python scripts/noon_runner.py --once
+
+# Sync latest prices
+python scripts/sync.py
+
+# Retrain models
+TOP_N=20 TC_CENTS=1.0 python scripts/train_models.py
+  </pre>
+</div>
+{% endblock %}

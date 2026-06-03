@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Decisions — Kalshi Trader{% endblock %}
+{% block content %}
+<h1>Decisions</h1>
+
+{% if pending %}
+<h2>⚠ Pending Approval</h2>
+{% for d in pending %}
+<div class="card decision-card" id="decision-{{ d.id }}">
+  <div class="meta">
+    <span><b>{{ d.date }}</b></span>
+    <span>Ticker: <b>{{ d.ticker }}</b></span>
+    <span>Model: <b>{{ d.model }}</b></span>
+    <span>Action: <b>{{ d.recommended_action }}</b></span>
+    <span>Forecast: <b>{{ d.forecast | cents }}</b></span>
+    <span>Contracts: <b>{{ d.confidence | int }}</b></span>
+  </div>
+  <p class="muted" style="font-size:12px;">
+    {% if d.recommended_action == 'buy_yes' %}
+      Buying YES — model predicts price will rise toward {{ d.forecast | cents }}.
+    {% elif d.recommended_action == 'buy_no' %}
+      Buying NO — model predicts price will fall toward {{ d.forecast | cents }}.
+    {% else %}
+      {{ d.recommended_action }}
+    {% endif %}
+  </p>
+  <div class="actions">
+    <button class="btn btn-approve"
+      hx-post="/decisions/{{ d.id }}/approve"
+      hx-target="#decision-{{ d.id }} .actions"
+      hx-swap="innerHTML"
+      hx-confirm="Approve this trade?"
+      hx-indicator="#spinner-{{ d.id }}">
+      ✓ Approve
+    </button>
+    <button class="btn btn-reject"
+      hx-post="/decisions/{{ d.id }}/reject"
+      hx-target="#decision-{{ d.id }} .actions"
+      hx-swap="innerHTML">
+      ✗ Reject
+    </button>
+    <span id="spinner-{{ d.id }}" class="muted htmx-indicator" style="font-size:12px;">placing order…</span>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+  <p class="muted">No pending decisions. The noon runner fires at 12:00 PST Mon–Fri.</p>
+</div>
+{% endif %}
+
+{% if recent %}
+<h2 style="margin-top:24px;">Recent Decisions</h2>
+<div class="card">
+  <table>
+    <thead><tr><th>Date</th><th>Action</th><th>Forecast</th><th>Contracts</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for d in recent %}
+    <tr>
+      <td>{{ d.date }}</td>
+      <td>{{ d.recommended_action or '—' }}</td>
+      <td>{{ d.forecast | cents }}</td>
+      <td>{{ d.confidence | int if d.confidence else '—' }}</td>
+      <td>
+        <span class="badge badge-{{ 'success' if d.status == 'executed' else ('error' if d.status == 'failed' else 'neutral') }}">
+          {{ d.status }}
+        </span>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

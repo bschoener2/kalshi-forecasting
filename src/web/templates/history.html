@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Order History — Kalshi Trader{% endblock %}
+{% block content %}
+<h1>Order History</h1>
+<div class="card">
+{% if orders %}
+<table>
+  <thead>
+    <tr>
+      <th>Time</th><th>Ticker</th><th>Side</th><th>Qty</th>
+      <th>Price</th><th>Status</th><th>P&amp;L</th><th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for o in orders %}
+  <tr>
+    <td class="muted" style="white-space:nowrap;">{{ o.created_at.strftime('%Y-%m-%d %H:%M') if o.created_at else '—' }}</td>
+    <td>{{ o.ticker }}</td>
+    <td>{{ o.side }}</td>
+    <td>{{ o.quantity }}</td>
+    <td>{{ o.price | dollars }}</td>
+    <td>
+      <span class="badge badge-{{ 'success' if o.status == 'EXECUTED' else ('error' if o.status in ('FAILED','REJECTED') else 'pending') }}">
+        {{ o.status }}
+      </span>
+    </td>
+    <td class="{{ 'up' if o.pnl and o.pnl >= 0 else ('down' if o.pnl and o.pnl < 0 else '') }}">
+      {{ o.pnl | cents if o.pnl is not none else '—' }}
+    </td>
+    <td class="muted" style="font-size:12px;">{{ o.notes or '' }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No orders yet.</p>
+{% endif %}
+</div>
+{% endblock %}

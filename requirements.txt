@@ -13,6 +13,11 @@ scikit-learn>=1.4.0
 statsmodels>=0.14.0
 pmdarima>=2.0.4
 xgboost>=2.0.3
+prophet>=1.1.5
+apscheduler>=3.10.0
+jinja2>=3.1.0
+uvicorn>=0.29.0
+fastapi>=0.111.0
 
 # Deep learning (CPU-only — install separately in Dockerfile for smaller image)
 # torch installed via extra-index-url in Dockerfile
