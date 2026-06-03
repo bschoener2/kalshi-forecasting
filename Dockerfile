@@ -14,6 +14,9 @@ RUN apt-get update && apt-get install -y \
 RUN python3 -m venv /opt/venv
 COPY requirements.txt /tmp/requirements.txt
 RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
+# PyTorch CPU-only (separate step to use the lightweight index)
+RUN /opt/venv/bin/pip install --no-cache-dir torch \
+    --index-url https://download.pytorch.org/whl/cpu
 ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONPATH=/workspace/src
 
